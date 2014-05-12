@@ -1,0 +1,8 @@
+#!/bin/sh
+
+mkdir vlevel
+
+for i in *.ogg
+do
+	sox $i -t raw - | vlevel-bin $@ | sox -t raw -r 44100 -c 2 -ws - vlevel/`basename $i .ogg`.wav
+done

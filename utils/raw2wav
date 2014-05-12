@@ -1,0 +1,3 @@
+#!/bin/sh
+
+sox -raw -r44100 -s -w -c2 $1 `basename $1 .raw`.wav

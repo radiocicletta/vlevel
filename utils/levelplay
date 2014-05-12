@@ -1,0 +1,4 @@
+#!/bin/sh
+# uses vlevel to play .ogg files named on the command line
+
+ogg123 -d raw -f - "$@" | vlevel-bin | artscat

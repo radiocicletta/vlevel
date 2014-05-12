@@ -1,0 +1,13 @@
+VLevel 0.3 INSTALL
+
+VLevel is distributed as source code.  To build it, type "make".  To
+install it, login as root (type "su") and type "make install".
+
+You can change where it is installed by editing Makefile before doing
+the above.
+
+I test VLevel on a Linux system, but it should build on any similar
+system.  It should compile on Windows, but it won't be very useful
+until I write a Ruby script with a nice cross-platform GUI and SOX
+integration.
+

@@ -1,0 +1,44 @@
+VLevel 0.5 README
+
+What is VLevel?
+
+  VLevel is a tool to amplify the soft parts of music so you don't
+  have to fiddle with the volume control.  It looks ahead a few
+  seconds, so it can change the volume gradually without ever
+  clipping.  Because the volume is changed gradually, "dynamic
+  contrast" is preserved.
+
+How do I install VLevel?
+  
+  See the file INSTALL.  For the impatient: "sudo make install".
+
+How do I use VLevel?
+
+  VLevel is a filter, meaning you pipe raw data to it, and it outputs
+  the leveled data.  For example:
+
+  vlevel-bin < in.cdda > out.cdda
+
+  There are options to control the length of the look-ahead buffer,
+  the strength of the effect, and the maximum amplification, as well
+  as the format of the raw data.  Type "vlevel-bin --help" for
+  details.
+
+  VLevel also works as a LADSPA plugin.  See http://www.ladspa.org for
+a lists of hosts that VLevel can plug into.
+
+What other features are planed?
+
+  A Ruby cross-platform GUI drag-n-drop converter that uses SOX.
+
+Can I distribute VLevel?
+
+  Please do.  VLevel is licenced under the GPL, for more information,
+  see the COPYING file.
+
+Where can I get more info?
+
+  There is documentation in the docs directory.  News, new versions,
+  contact info, help, and more are available from the website:
+
+  http://vlevel.sourceforge.net

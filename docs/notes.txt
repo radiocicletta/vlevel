@@ -1,0 +1,36 @@
+VLevel 0.3 notes.txt
+
+Channels
+
+  VLevel abstracts audio into samples, each of which has as many
+  values as there are channels, and most of the functions confusingly
+  accept length in samples, but work on arrays of length (samples *
+  values) doubles.
+
+  You'd think this would be inneficient, but it's not.  I tried
+  changing the code to just work on arrays of double (which would only
+  affect the lowest order bits, except for very short look-ahead), and
+  it was actually a bit slower.
+
+  I think the reason for this is that although when using channels,
+  there is much more integer math and 2-iteration for loops, it means
+  that the expensive slope calculation (not the whole search, but each
+  slope = dy / dx) only has to be done half (1 / channels) as often.
+
+  The moral is: channels aren't inneficient, don't waste your time
+  abolishing them.  Floating-point probably is, but fixed point may be
+  even more ugly.
+
+  The code currently allows for different functions to be called
+  depending on the number of channels.  For now, the generic code that
+  works for any number of channels is fine, but speed optimization may
+  be possible in the common mono and stereo cases.
+
+
+GCC Versions
+
+  I discovered that while GCC 3.2 generates faster code than GCC 2.96,
+  it's iostream implementation is slower by two orders of magnitude.
+  I've changed the code to use FILE*, which is fast in either version,
+  but that's ugly.  I haven't tried other platforms or versions, but I
+  see no reason they wouldn't work.

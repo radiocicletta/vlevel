@@ -1,0 +1,152 @@
+VLevel 0.3 technical.txt
+
+This is an outline of how VLevel works, which will hopefully be useful
+to anyone who helps develop it.  (And me in a month.)
+
+Code Layout
+
+  The core of VLevel is the VolumeLeveler class.  It contains the
+  look-ahead buffer.  It works on blocks of double-precision numbers,
+  called values (value_t).  Some number (channels) of values makes up
+  a sample.  Many of VolumeLeveler's functions take lengths in samples
+  instead of values, so be careful.
+
+  vlevel-bin drives the VolumeLeveler class, and also uses CommandLine
+  to parse it's options.
+
+  Soon, there will be a Ruby script using SOX that makes Ogg, FLAC, and wav
+  files work with a nice drag-n-drop GUI.
+
+General Idea
+
+  The intent is to make the quiet parts louder.  This is done by
+  computing the volume at each point, then scaling it as described in
+  the Math section.  The complex part is finding out what the volume
+  is at each point (VolumeLeveler::avg_amp).  It must vary smoothly so
+  the volume changes aren't obvious, but it must always be above the
+  peaks of the waveform, or clipping could occur.
+
+  To do this, there is a fifo buffer.  Imagine a graph of position
+  vs. amplitude showing the contents of the buffer.  A horizontal line
+  is drawn across it, representing VolumeLeveler::avg_amp.  From where
+  avg_amp crosses the y-axis, a line is drawn with the maximum
+  possible slope to intercept one of the amplitude points.  This line
+  which is as steep as possible, is the smooth line that avg_amp will
+  follow.
+
+  When the value at the head of the buffer is removed, it is scaled
+  based on avg_amp.  avg_amp is then incremented by the slope of the
+  line.  If we reach the point the line was drawn to (max_slope_pos),
+  we search the fifo for the next point of highest slope.  Otherwise,
+  we only need to check the incoming sample to see if a line drawn to
+  it has the highest slope.
+
+    y                       y (a few samples later)
+
+    ^       ^               ^
+    |      / max_slope      |
+    |     /                 |
+    |    /s                 |s\---------- avg_amp
+    |   / s                 |s \
+    |  /  s                 |s  \ max_slope
+    | /   s s               |s s \
+    |--s-ss-s----avg_amp    |s s  \
+    | ss ss s s             |s s ss
+    |ssssssssss             |ssssss
+    +------------> x        +---------> x
+   
+  Sorry for the ASCII art.  The result is that the average amplitude
+  (avg_amp) varies slowly and always stays above the amplitude of each
+  sample.  When the samples are removed, they are scaled based on the
+  next section.
+
+Math
+
+  Once we have avg_amp, each sample is scaled when it is output
+  according to this:
+
+  output_sample = sample * avg_amp ^ (-strength)
+
+  This is derived as follows:
+
+  First, we convert the amplitude of avg_amp to decibels (1 = 0dB):
+
+  avg_amp_db = 10 * log10(avg_amp)
+
+  avg_amp_db is less than zero.  We want to scale it to be closer to
+  zero, in such a way that if strength is 1, it will become zero, and
+  if strength is 0 it will remain unchanged.
+
+  ideal_amp_db = avg_amp_db * (1 - strength)
+  ideal_amp_db = 10 * log10(avg_amp) * (1 - strength)
+
+  Now we convert back to samples:
+
+  ideal_amp = 10 ^ (ideal_amp_db / 10)
+  ideal_amp = 10 ^ (log10(avg_amp) * (1 - strength))
+  ideal_amp = (10 ^ log10(avg_amp)) ^ (1 - strength)
+  ideal_amp = avg_amp ^ (1 - strength)
+
+  Now we find out what we should multiply the samples by to change
+  their peak amplitude, avg_amp, to their ideal peak amplitude,
+  ideal_amp:
+
+  multiplier = ideal_amp / avg_amp
+  multiplier = avg_amp ^ (1 - strength) / avg_amp
+  multiplier = avg_amp ^ (-strength)
+
+  And finally, we multiply the sample by the multiplier:
+
+  output_sample = sample * multiplier
+  output_sample = sample * avg_amp ^ (-strength)
+
+Undoing the effect
+
+  If the original values for strength weren't too close to 1, you can
+  undo the VLevel by giving the undo option.  It works by changing
+  strength as shown below.
+
+  When we first leveled, we scaled the amplitudes like so: 
+
+  ideal_amp_db = avg_amp_db * (1 - strength)
+
+  To get that back, we solve for avg_amp_db
+
+  avg_amp_db = ideal_amp_db * 1 / (1 - strength)
+
+  In this pass, however, the original avg_amp_db becomes ideal_amp_db,
+  and the original (1 - strength) becomes 1 / (1 - strength).  Now
+  we skip ahead a bit:
+
+  multiplier = avg_amp ^ (1 - strength) / avg_amp
+
+  Substituting as explained above and continuing:
+
+  multiplier = avg_amp ^ (1 / (1 - strength)) / avg_amp
+  multiplier = avg_amp ^ ((1 / (1 - strength)) - 1)
+  multiplier = avg_amp ^ (strength / (1 - strength))
+
+  But how do we get VLevel to do this?  Well, we can give it any
+  strength, and it does this:
+
+  multiplier = avg_amp ^ -strength
+
+  And we want it to do this:
+
+  multiplier = avg_amp ^ (undo_strength / (1 - undo_strength))
+
+  So...
+
+  -strength = undo_strength / (1 - undo_strength)
+  strength = undo_strength / (undo_strength - 1)
+
+  By choosing strength as above before starting VLevel, we can then
+  undo the first VLevel, with no change to the main algorithm.
+
+  To be totally precise, we'd also have to make a min_multiplier with
+  a value of 1 / orig_max_multiplier, but that would be slow, and does
+  anybody care if we drop the static anyway?
+
+  It's not perfect, probably because avg_amp moves linearly, not
+  logarithmically, so there are some rounding errors.  Someday I might
+  try changing that, but it's a big change.

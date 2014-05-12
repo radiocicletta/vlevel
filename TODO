@@ -1,0 +1,11 @@
+More extensive testing, exotic channel config, feedback on other platforms
+
+Optimize for mono and stereo special cases
+  - i tried this, and I couldn't do better than -O3 -march=pentium4
+  - someone else can try their hand, but beware.
+
+Cool FXRuby GUI with SOX
+
+Hopefully usable Winamp plugin before next version.  Yay!
+
+Rememember: when updating version, change in docs, readme, and vlevel-bin.cpp
