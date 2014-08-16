@@ -49,3 +49,8 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+vlevel-bin
+autom4te.cache
+autoscan.log
+configure.ac
+configure.scan
