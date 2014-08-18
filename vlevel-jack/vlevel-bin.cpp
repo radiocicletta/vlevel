@@ -54,8 +54,6 @@ jack_ringbuffer_t *ring[MAX_PORTS];
 size_t sample_size = sizeof(jack_default_audio_sample_t);
 size_t jack_opened_ports = 0;
 
-bool barrier = false;
-
 VolumeLeveler l;
 
 void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
@@ -143,9 +141,6 @@ int jack_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 
 int callback_jack(jack_nframes_t nframes, void *arg)
 {
-    if (!barrier)
-        return 0;
-
     size_t channels = jack_opened_ports / 2;
     sample_t *in[channels];
 
@@ -269,12 +264,6 @@ int main(int argc, char *argv[])
     }
 
     double framerate = jack_get_sample_rate(client);
-
-    if (jack_set_process_callback(client, callback_jack, NULL)) {
-        cerr << "cannot set process callback" << endl;
-        return 1;
-    }
-
     if (jack_activate (client)) {
         cerr << "cannot activate client" << endl;
         return 1;
@@ -284,7 +273,12 @@ int main(int argc, char *argv[])
     jack_nframes_t bufsize = jack_get_buffer_size(client) * sizeof(value_t) * channels * 2;
     cerr << "length: " << bufsize << endl;
     l = VolumeLeveler(bufsize, channels, strength, max_multiplier);
-    barrier = true;
+
+    if (jack_set_process_callback(client, callback_jack, NULL)) {
+        cerr << "cannot set process callback" << endl;
+        return 1;
+    }
+
     sleep(-1);
     return 0;
 }
