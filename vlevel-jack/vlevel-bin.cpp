@@ -17,7 +17,11 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 // USA
 
-// vlevel-bin.cpp - the vlevel-bin command, uses VolumeLeveler
+//  ___         _ _         _    _     _   _        
+// | _ \__ _ __| (_)___  __(_)__| |___| |_| |_ __ _ 
+// |   / _` / _` | / _ \/ _| / _| / -_)  _|  _/ _` |
+// |_|_\__,_\__,_|_\___/\__|_\__|_\___|\__|\__\__,_|
+//           La radio sempre in bolletta.
 
 #include <iostream>
 #include <fstream>
