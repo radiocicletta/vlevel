@@ -45,7 +45,6 @@
 using namespace std;
 
 void Help();
-void LevelRaw(VolumeLeveler *, unsigned int);
 
 #define MAX_PORTS 2 
 typedef jack_default_audio_sample_t sample_t;
@@ -65,79 +64,6 @@ value_t         MAX_MULTIPLIER    = 20;
 // State
 char          * JACK_FRAME_BUFFER = NULL;
 VolumeLeveler * LEVELER           = NULL;
-
-void LevelRaw()
-{
-    size_t bits_per_value = sizeof(sample_t) * 8;
-
-    // figure out the size of things
-    size_t samples = LEVELER->GetSamples();
-    size_t channels = LEVELER->GetChannels();
-    size_t values = samples * channels;
-    size_t bytes_per_value = sample_size;
-    size_t bytes = values * bytes_per_value;
-
-    size_t s, ch; // VC++ 5.0's scoping rules are wrong, oh well.
-
-    // allocate our interleaved buffers
-    char *raw_buf = new char[bytes];
-    value_t *raw_value_buf = new value_t[values];
-
-    // allocate our per-channel buffers
-    value_t **bufs = new value_t*[channels];
-    value_t **bufs_out = new value_t*[channels];
-    //value_t *bufs[channels];
-
-    // how much data in the buffer is good
-    size_t good_values, good_samples;
-    // how much from the front of the buffer should be ignored
-    size_t silence_values, silence_samples;
-    
-    // read and convert to value_t
-    char *buf_in = (char *) malloc(bytes);
-    for (int i = 0; i < channels; i++){
-        good_values = jack_ringbuffer_read_space(ring[i]);
-        good_samples = good_values; // sizeof(sample_t); //good_values / channels;
-        bufs[i] = new value_t[samples];
-        bufs_out[i] = new value_t[samples];
-        jack_ringbuffer_read(ring[i], buf_in, good_values);
-        for (size_t s = 0; s < good_values; s++){
-            raw_buf[s] = *(buf_in + s);
-        }
-        ToValues(raw_buf, raw_value_buf, good_values, bits_per_value, true);
-        for (size_t s = 0; s < good_values; s++)
-            bufs[i][s] = raw_value_buf[s];
-    }
-
-
-    silence_samples = LEVELER->Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
-
-
-    // write the data
-    sample_t *out;
-    char *buf_out = (char *) malloc(bytes);
-    for (int i = 0; i < channels; i++){
-        for (size_t s = 0; s < good_values; s++)
-            raw_value_buf[s] = bufs[i][s];
-        FromValues(raw_value_buf, raw_buf, good_samples, bits_per_value, true);
-        out = (jack_default_audio_sample_t *) jack_port_get_buffer(output_port[i], good_values);
-        for (size_t s = 0; s < good_values; s++)
-            *(buf_out + s) = raw_buf[s];
-        memcpy(out, buf_out, good_values);
-    }
-
-    delete [] raw_value_buf;
-    delete [] raw_buf;
-    free(buf_in);
-    free(buf_out);
-    for(ch = 0; ch < channels; ch++) {
-        delete [] bufs[ch];
-    }
-    delete [] bufs;
-
-}
-
-
 
 int jack_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
@@ -171,7 +97,74 @@ int callback_jack(jack_nframes_t nframes, void *arg)
         jack_ringbuffer_write(ring[i], JACK_FRAME_BUFFER,  sizeof(sample_t) * nframes);
     }
 
-    LevelRaw();
+    {
+        size_t bits_per_value = sizeof(sample_t) * 8;
+
+        // figure out the size of things
+        size_t samples = LEVELER->GetSamples();
+        size_t channels = LEVELER->GetChannels();
+        size_t values = samples * channels;
+        size_t bytes_per_value = sample_size;
+        size_t bytes = values * bytes_per_value;
+
+        size_t s, ch; // VC++ 5.0's scoping rules are wrong, oh well.
+
+        // allocate our interleaved buffers
+        char *raw_buf = new char[bytes];
+        value_t *raw_value_buf = new value_t[values];
+
+        // allocate our per-channel buffers
+        value_t **bufs = new value_t*[channels];
+        value_t **bufs_out = new value_t*[channels];
+        //value_t *bufs[channels];
+
+        // how much data in the buffer is good
+        size_t good_values, good_samples;
+        // how much from the front of the buffer should be ignored
+        size_t silence_values, silence_samples;
+        
+        // read and convert to value_t
+        char *buf_in = (char *) malloc(bytes);
+        for (int i = 0; i < channels; i++){
+            good_values = jack_ringbuffer_read_space(ring[i]);
+            good_samples = good_values; // sizeof(sample_t); //good_values / channels;
+            bufs[i] = new value_t[samples];
+            bufs_out[i] = new value_t[samples];
+            jack_ringbuffer_read(ring[i], buf_in, good_values);
+            for (size_t s = 0; s < good_values; s++){
+                raw_buf[s] = *(buf_in + s);
+            }
+            ToValues(raw_buf, raw_value_buf, good_values, bits_per_value, true);
+            for (size_t s = 0; s < good_values; s++)
+                bufs[i][s] = raw_value_buf[s];
+        }
+
+
+        silence_samples = LEVELER->Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
+
+        // write the data
+        sample_t *out;
+        char *buf_out = (char *) malloc(bytes);
+        for (int i = 0; i < channels; i++){
+            for (size_t s = 0; s < good_values; s++)
+                raw_value_buf[s] = bufs[i][s];
+            FromValues(raw_value_buf, raw_buf, good_samples, bits_per_value, true);
+            out = (jack_default_audio_sample_t *) jack_port_get_buffer(output_port[i], good_values);
+            for (size_t s = 0; s < good_values; s++)
+                *(buf_out + s) = raw_buf[s];
+            memcpy(out, buf_out, good_values);
+        }
+
+        delete [] raw_value_buf;
+        delete [] raw_buf;
+        free(buf_in);
+        free(buf_out);
+        for(ch = 0; ch < channels; ch++) {
+            delete [] bufs[ch];
+        }
+        delete [] bufs;
+
+    }
 
     return 0;
 }
