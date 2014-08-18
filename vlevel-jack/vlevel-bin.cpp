@@ -60,32 +60,32 @@ VolumeLeveler l;
 
 void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
 {
-	assert(bits_per_value % 8 == 0);
-	
-	// figure out the size of things
-	size_t samples = vl.GetSamples();
-	size_t channels = vl.GetChannels();
-	size_t values = samples * channels;
-	size_t bytes_per_value = sample_size;
-	size_t bytes = values * bytes_per_value;
+    assert(bits_per_value % 8 == 0);
+    
+    // figure out the size of things
+    size_t samples = vl.GetSamples();
+    size_t channels = vl.GetChannels();
+    size_t values = samples * channels;
+    size_t bytes_per_value = sample_size;
+    size_t bytes = values * bytes_per_value;
 
-	size_t s, ch; // VC++ 5.0's scoping rules are wrong, oh well.
+    size_t s, ch; // VC++ 5.0's scoping rules are wrong, oh well.
 
-	// allocate our interleaved buffers
-	char *raw_buf = new char[bytes];
-	value_t *raw_value_buf = new value_t[values];
+    // allocate our interleaved buffers
+    char *raw_buf = new char[bytes];
+    value_t *raw_value_buf = new value_t[values];
 
-	// allocate our per-channel buffers
-	value_t **bufs = new value_t*[channels];
-	value_t **bufs_out = new value_t*[channels];
-	//value_t *bufs[channels];
+    // allocate our per-channel buffers
+    value_t **bufs = new value_t*[channels];
+    value_t **bufs_out = new value_t*[channels];
+    //value_t *bufs[channels];
 
-	// how much data in the buffer is good
-	size_t good_values, good_samples;
-	// how much from the front of the buffer should be ignored
-	size_t silence_values, silence_samples;
-	
-	// read and convert to value_t
+    // how much data in the buffer is good
+    size_t good_values, good_samples;
+    // how much from the front of the buffer should be ignored
+    size_t silence_values, silence_samples;
+    
+    // read and convert to value_t
     char *buf_in = (char *) malloc(bytes);
     for (int i = 0; i < channels; i++){
         good_values = jack_ringbuffer_read_space(ring[i]);
@@ -102,10 +102,10 @@ void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
     }
 
 
-	silence_samples = vl.Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
+    silence_samples = vl.Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
 
 
-	// write the data
+    // write the data
     sample_t *out;
     char *buf_out = (char *) malloc(bytes);
     for (int i = 0; i < channels; i++){
@@ -118,14 +118,14 @@ void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
         memcpy(out, buf_out, good_values);
     }
 
-	delete [] raw_value_buf;
-	delete [] raw_buf;
+    delete [] raw_value_buf;
+    delete [] raw_buf;
     free(buf_in);
     free(buf_out);
-	for(ch = 0; ch < channels; ch++) {
+    for(ch = 0; ch < channels; ch++) {
         delete [] bufs[ch];
     }
-	delete [] bufs;
+    delete [] bufs;
 
 }
 
@@ -169,93 +169,93 @@ void jack_shutdown(void *arg)
 
 void Help()
 {
-	cerr << "VLevel v0.5 JACK edition" << endl
-	     << endl
-	     << "usage:" << endl
-	     << "\tvlevel-bin [options] < infile > outfile" << endl
-	     << endl
-	     << "options: (abbreviations also work)" << endl
-	     << "\t--channels num" << endl
-	     << "\t\tEach sample has num channels" << endl
-	     << "\t\tDefault is 2" << endl
-	     << "\t--strength num" << endl
-	     << "\t\tEffect strength, 1 is max, 0 is no effect." << endl
-	     << "\t\tDefault is .8" << endl
-	     << "\t--max-multiplier num" << endl
-	     << "\t\tSets the maximum amount a sample will be multiplied" << endl
-	     << "\t\tDefault is 20" << endl
-	     << "\t--undo" << endl
-	     << "\t\tReverses the effect of a previous VLevel" << endl;
+    cerr << "VLevel v0.5 JACK edition" << endl
+         << endl
+         << "usage:" << endl
+         << "\tvlevel-bin [options] < infile > outfile" << endl
+         << endl
+         << "options: (abbreviations also work)" << endl
+         << "\t--channels num" << endl
+         << "\t\tEach sample has num channels" << endl
+         << "\t\tDefault is 2" << endl
+         << "\t--strength num" << endl
+         << "\t\tEffect strength, 1 is max, 0 is no effect." << endl
+         << "\t\tDefault is .8" << endl
+         << "\t--max-multiplier num" << endl
+         << "\t\tSets the maximum amount a sample will be multiplied" << endl
+         << "\t\tDefault is 20" << endl
+         << "\t--undo" << endl
+         << "\t\tReverses the effect of a previous VLevel" << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	CommandLine cmd(argc, argv);
-	size_t length = 3 * 44100;
-	size_t channels = 2;
-	value_t strength = .8, max_multiplier = 20;
-	bool undo = false;
-	string option, argument;
+    CommandLine cmd(argc, argv);
+    size_t length = 3 * 44100;
+    size_t channels = 2;
+    value_t strength = .8, max_multiplier = 20;
+    bool undo = false;
+    string option, argument;
     const char *jack_name = "vlevel";
-	
-	while(option = cmd.GetOption(), !option.empty()) {
-		
-		if(option == "channels" || option == "c") {
-			if((istringstream(cmd.GetArgument()) >> channels).fail()) {
-				cerr << cmd.GetProgramName() << ": bad or no option for --channels" << endl;
-				return 2;
-			}
-			if(channels < 1) {
-				cerr << cmd.GetProgramName() << ": --channels must be greater than 0" << endl;
-				return 2;
-			}
-		} else if(option == "strength" || option == "s") {
-			if((istringstream(cmd.GetArgument()) >> strength).fail()) {
-				cerr << cmd.GetProgramName() << ": bad or no option for --strength" << endl;
-				return 2;
-			}
-			if(strength < 0 || strength > 1) {
-				cerr << cmd.GetProgramName() << ": --strength must be between 0 and 1 inclusive." << endl;
-				return 2;
-			}
-		} else if(option == "max-multiplier" || option == "m") {
-			if((istringstream(cmd.GetArgument()) >> max_multiplier).fail()) {
-				cerr << cmd.GetProgramName() << ": bad or no option for --max-multiplier" << endl
-				     << cmd.GetProgramName() << ": for no max multiplier, give a negative number" << endl;
-				return 2;
-			}
-		} else if(option == "undo" || option == "u") {
-			undo = true;
-		} else if(option == "help" || option == "h") {
-			Help();
-			return 0;
-		} else {
-			cerr << cmd.GetProgramName() << ": unrecognized option " << option << endl;
-			Help();
-			return 2;
-		}
-	}
-	
-	// This works, see docs/technical.txt
-	if(undo) strength = strength / (strength - 1);
-	
-	cerr << "Beginning VLevel with:" << endl
-	     << "length: " << length << endl
-	     << "channels: " << channels << endl
-	     << "strength: " << strength << endl
-	     << "max_multiplier: " << max_multiplier << endl;
-	
+    
+    while(option = cmd.GetOption(), !option.empty()) {
+        
+        if(option == "channels" || option == "c") {
+            if((istringstream(cmd.GetArgument()) >> channels).fail()) {
+                cerr << cmd.GetProgramName() << ": bad or no option for --channels" << endl;
+                return 2;
+            }
+            if(channels < 1) {
+                cerr << cmd.GetProgramName() << ": --channels must be greater than 0" << endl;
+                return 2;
+            }
+        } else if(option == "strength" || option == "s") {
+            if((istringstream(cmd.GetArgument()) >> strength).fail()) {
+                cerr << cmd.GetProgramName() << ": bad or no option for --strength" << endl;
+                return 2;
+            }
+            if(strength < 0 || strength > 1) {
+                cerr << cmd.GetProgramName() << ": --strength must be between 0 and 1 inclusive." << endl;
+                return 2;
+            }
+        } else if(option == "max-multiplier" || option == "m") {
+            if((istringstream(cmd.GetArgument()) >> max_multiplier).fail()) {
+                cerr << cmd.GetProgramName() << ": bad or no option for --max-multiplier" << endl
+                     << cmd.GetProgramName() << ": for no max multiplier, give a negative number" << endl;
+                return 2;
+            }
+        } else if(option == "undo" || option == "u") {
+            undo = true;
+        } else if(option == "help" || option == "h") {
+            Help();
+            return 0;
+        } else {
+            cerr << cmd.GetProgramName() << ": unrecognized option " << option << endl;
+            Help();
+            return 2;
+        }
+    }
+    
+    // This works, see docs/technical.txt
+    if(undo) strength = strength / (strength - 1);
+    
+    cerr << "Beginning VLevel with:" << endl
+         << "length: " << length << endl
+         << "channels: " << channels << endl
+         << "strength: " << strength << endl
+         << "max_multiplier: " << max_multiplier << endl;
+    
     jack_client_t* client = NULL;
-	
-	if ((client = jack_client_open (jack_name, JackNullOption, NULL)) == 0) {
-		cerr << "jack server not running?" << endl;
-		return 1;
-	}
+    
+    if ((client = jack_client_open (jack_name, JackNullOption, NULL)) == 0) {
+        cerr << "jack server not running?" << endl;
+        return 1;
+    }
 
-	if ((client = jack_set_buffer_size_callback(client, jack_set_buffer_size_callback, NULL)) == 0) {
-		cerr << "failed to set buffer size callback" << endl;
-		return 1;
-	}
+    if ((client = jack_set_buffer_size_callback(client, jack_set_buffer_size_callback, NULL)) == 0) {
+        cerr << "failed to set buffer size callback" << endl;
+        return 1;
+    }
 
     for (int i = 0; i < channels; i++){
         char out[256], in[256];
@@ -271,20 +271,20 @@ int main(int argc, char *argv[])
     double framerate = jack_get_sample_rate(client);
 
     if (jack_set_process_callback(client, callback_jack, NULL)) {
-		cerr << "cannot set process callback" << endl;
+        cerr << "cannot set process callback" << endl;
         return 1;
     }
 
-	if (jack_activate (client)) {
-		cerr << "cannot activate client" << endl;
-		return 1;
-	}
+    if (jack_activate (client)) {
+        cerr << "cannot activate client" << endl;
+        return 1;
+    }
     jack_on_shutdown (client, jack_shutdown, NULL);
 
     jack_nframes_t bufsize = jack_get_buffer_size(client) * sizeof(value_t) * channels * 2;
-	cerr << "length: " << bufsize << endl;
-	l = VolumeLeveler(bufsize, channels, strength, max_multiplier);
+    cerr << "length: " << bufsize << endl;
+    l = VolumeLeveler(bufsize, channels, strength, max_multiplier);
     barrier = true;
     sleep(-1);
-	return 0;
+    return 0;
 }
