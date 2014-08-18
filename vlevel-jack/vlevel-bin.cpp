@@ -44,127 +44,60 @@
 
 using namespace std;
 
-void Help();
-
-#define MAX_PORTS 2 
 typedef jack_default_audio_sample_t sample_t;
 
 size_t sample_size = sizeof(jack_default_audio_sample_t);
 
-// Options
-size_t          CHANNELS          =  2;
-value_t         STRENGHT          = .8;
-value_t         MAX_MULTIPLIER    = 20;
+size_t             CHANNELS          =  2;
+value_t            STRENGTH          = .8;
+value_t            MAX_MULTIPLIER    = 20;
 
-// State
+jack_client_t     * CLIENT           = NULL;
+VolumeLeveler     * LEVELER          = NULL;
 
-jack_port_t       * INPUT_PORT  [MAX_PORTS];
-jack_port_t       * OUTPUT_PORT [MAX_PORTS];
-jack_ringbuffer_t * RING        [MAX_PORTS];
+jack_port_t     ** INPUT_PORTS       = NULL;
+jack_port_t     ** OUTPUT_PORTS      = NULL;
 
-size_t              jack_opened_ports = 0;
-char              * JACK_FRAME_BUFFER = NULL;
-VolumeLeveler     * LEVELER           = NULL;
+value_t         ** INPUT_BUFFERS     = NULL;
+value_t         ** OUTPUT_BUFFERS    = NULL;
 
-int jack_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
+int vlevel_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
-    if (JACK_FRAME_BUFFER)
-        free(JACK_FRAME_BUFFER);
+    size_t buffer_size = sizeof(value_t) * nframes;
 
-    if (LEVELER)
+    if (LEVELER) {
         delete LEVELER;
 
-    JACK_FRAME_BUFFER = (char *) malloc(sizeof(sample_t) * nframes);
-
-    jack_nframes_t bufsize = nframes * sizeof(value_t) * CHANNELS * 2;
-    LEVELER = new VolumeLeveler(bufsize,
-                                CHANNELS,
-                                STRENGHT,
-                                MAX_MULTIPLIER);
-
-
-    return (JACK_FRAME_BUFFER != NULL);
-}
-
-int callback_jack(jack_nframes_t nframes, void *arg)
-{
-    size_t channels = jack_opened_ports / 2;
-    sample_t *in[channels];
-
-    for (int i = 0; i < channels ; i++)
-    {
-        in[i] = (sample_t *) jack_port_get_buffer(INPUT_PORT[i], nframes);
-        memcpy(JACK_FRAME_BUFFER, in[i], sizeof(sample_t) * nframes);
-        jack_ringbuffer_write(RING[i], JACK_FRAME_BUFFER,  sizeof(sample_t) * nframes);
+        free(INPUT_BUFFERS);
+        free(OUTPUT_BUFFERS);
     }
 
+    INPUT_BUFFERS  = (value_t **) calloc(CHANNELS, buffer_size);
+    OUTPUT_BUFFERS = (value_t **) calloc(CHANNELS, buffer_size);
+
+    LEVELER = new VolumeLeveler(jack_get_sample_rate(CLIENT),
+                                CHANNELS,
+                                STRENGTH,
+                                MAX_MULTIPLIER);
+
+    return 0;
+}
+
+int vlevel_process_callback(jack_nframes_t nframes, void *arg)
+{
+    for (int i = 0; i < CHANNELS; i++)
     {
-        size_t bits_per_value = sizeof(sample_t) * 8;
-
-        // figure out the size of things
-        size_t samples = LEVELER->GetSamples();
-        size_t channels = LEVELER->GetChannels();
-        size_t values = samples * channels;
-        size_t bytes_per_value = sample_size;
-        size_t bytes = values * bytes_per_value;
-
-        size_t s, ch; // VC++ 5.0's scoping rules are wrong, oh well.
-
-        // allocate our interleaved buffers
-        char *raw_buf = new char[bytes];
-        value_t *raw_value_buf = new value_t[values];
-
-        // allocate our per-channel buffers
-        value_t **bufs = new value_t*[channels];
-        value_t **bufs_out = new value_t*[channels];
-        //value_t *bufs[channels];
-
-        // how much data in the buffer is good
-        size_t good_values, good_samples;
-        // how much from the front of the buffer should be ignored
-        size_t silence_values, silence_samples;
-        
-        // read and convert to value_t
-        char *buf_in = (char *) malloc(bytes);
-        for (int i = 0; i < channels; i++){
-            good_values = jack_ringbuffer_read_space(RING[i]);
-            good_samples = good_values; // sizeof(sample_t); //good_values / channels;
-            bufs[i] = new value_t[samples];
-            bufs_out[i] = new value_t[samples];
-            jack_ringbuffer_read(RING[i], buf_in, good_values);
-            for (size_t s = 0; s < good_values; s++){
-                raw_buf[s] = *(buf_in + s);
-            }
-            ToValues(raw_buf, raw_value_buf, good_values, bits_per_value, true);
-            for (size_t s = 0; s < good_values; s++)
-                bufs[i][s] = raw_value_buf[s];
-        }
+        sample_t * jack_input = (sample_t *)jack_port_get_buffer(INPUT_PORTS[i], nframes);
+        ToValues((char *)jack_input, INPUT_BUFFERS[i], nframes, sizeof(sample_t) * 8, true);
+    }
 
 
-        silence_samples = LEVELER->Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
+    LEVELER->Exchange(INPUT_BUFFERS, OUTPUT_BUFFERS, nframes);
 
-        // write the data
-        sample_t *out;
-        char *buf_out = (char *) malloc(bytes);
-        for (int i = 0; i < channels; i++){
-            for (size_t s = 0; s < good_values; s++)
-                raw_value_buf[s] = bufs[i][s];
-            FromValues(raw_value_buf, raw_buf, good_samples, bits_per_value, true);
-            out = (jack_default_audio_sample_t *) jack_port_get_buffer(OUTPUT_PORT[i], good_values);
-            for (size_t s = 0; s < good_values; s++)
-                *(buf_out + s) = raw_buf[s];
-            memcpy(out, buf_out, good_values);
-        }
-
-        delete [] raw_value_buf;
-        delete [] raw_buf;
-        free(buf_in);
-        free(buf_out);
-        for(ch = 0; ch < channels; ch++) {
-            delete [] bufs[ch];
-        }
-        delete [] bufs;
-
+    for (int i = 0; i < CHANNELS; i++)
+    {
+        sample_t * jack_output = (sample_t *)jack_port_get_buffer(OUTPUT_PORTS[i], nframes);
+        FromValues(OUTPUT_BUFFERS[i], (char *)jack_output, nframes, sizeof(sample_t) * 8, true);
     }
 
     return 0;
@@ -176,7 +109,7 @@ void jack_shutdown(void *arg)
     exit(0);
 }
 
-void Help()
+void vlevel_help()
 {
     cerr << "VLevel v0.5 JACK edition" << endl
          << endl
@@ -197,36 +130,44 @@ void Help()
          << "\t\tReverses the effect of a previous VLevel" << endl;
 }
 
-int main(int argc, char *argv[])
+int vlevel_parse_options(
+    // in
+    int                argc,
+    const char *const* argv,
+
+    // out
+    size_t  * channels,
+    value_t * strength,
+    value_t * max_multiplier
+)
 {
+    string option;
+    string argument;
+
+    bool        undo(false);
     CommandLine cmd(argc, argv);
-    size_t length = 3 * 44100;
-    bool undo = false;
-    string option, argument;
-    const char *jack_name = "vlevel";
 
     while(option = cmd.GetOption(), !option.empty()) {
-        
         if(option == "channels" || option == "c") {
-            if((istringstream(cmd.GetArgument()) >> CHANNELS).fail()) {
+            if((istringstream(cmd.GetArgument()) >> *channels).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --channels" << endl;
                 return 2;
             }
-            if(CHANNELS < 1) {
+            if(*channels < 1) {
                 cerr << cmd.GetProgramName() << ": --channels must be greater than 0" << endl;
                 return 2;
             }
         } else if(option == "strength" || option == "s") {
-            if((istringstream(cmd.GetArgument()) >> STRENGHT).fail()) {
+            if((istringstream(cmd.GetArgument()) >> *strength).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --strength" << endl;
                 return 2;
             }
-            if(STRENGHT < 0 || STRENGHT > 1) {
+            if(*strength < 0 || *strength > 1) {
                 cerr << cmd.GetProgramName() << ": --strength must be between 0 and 1 inclusive." << endl;
                 return 2;
             }
         } else if(option == "max-multiplier" || option == "m") {
-            if((istringstream(cmd.GetArgument()) >> MAX_MULTIPLIER).fail()) {
+            if((istringstream(cmd.GetArgument()) >> *max_multiplier).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --max-multiplier" << endl
                      << cmd.GetProgramName() << ": for no max multiplier, give a negative number" << endl;
                 return 2;
@@ -234,55 +175,74 @@ int main(int argc, char *argv[])
         } else if(option == "undo" || option == "u") {
             undo = true;
         } else if(option == "help" || option == "h") {
-            Help();
+            vlevel_help();
             return 0;
         } else {
             cerr << cmd.GetProgramName() << ": unrecognized option " << option << endl;
-            Help();
+            vlevel_help();
             return 2;
         }
     }
     
     // This works, see docs/technical.txt
-    if(undo) STRENGHT = STRENGHT / (STRENGHT - 1);
-    
+    if(undo)
+        *strength = *strength / (*strength - 1);
+
+    return 0;
+}
+
+int main(int argc, char *argv[])
+{
+    int retval = vlevel_parse_options(argc, argv, &CHANNELS, &STRENGTH, &MAX_MULTIPLIER);
+    if (retval != 0)
+        exit(retval);
+
     cerr << "Beginning VLevel with:" << endl
-         << "length: " << length << endl
-         << "channels: " << CHANNELS << endl
-         << "strength: " << STRENGHT << endl
+         << "channels:       " << CHANNELS << endl
+         << "strength:       " << STRENGTH << endl
          << "max_multiplier: " << MAX_MULTIPLIER << endl;
-    
-    jack_client_t* client = NULL;
-    
-    if ((client = jack_client_open(jack_name, JackNullOption, NULL)) == 0) {
+
+    if ((CLIENT = jack_client_open("vlevel", JackNullOption, NULL)) == 0) {
         cerr << "jack server not running?" << endl;
         return 1;
     }
 
-    if (jack_set_buffer_size_callback(client, jack_buffer_size_change_callback, NULL) == 0) {
+    if (jack_set_buffer_size_callback(CLIENT, vlevel_buffer_size_change_callback, NULL) == 0) {
         cerr << "failed to set buffer size callback" << endl;
         return 1;
     }
 
-    jack_on_shutdown (client, jack_shutdown, NULL);
+    jack_on_shutdown (CLIENT, jack_shutdown, NULL);
+
+    INPUT_PORTS  = (jack_port_t **)calloc(CHANNELS, sizeof(jack_port_t *));
+    OUTPUT_PORTS = (jack_port_t **)calloc(CHANNELS, sizeof(jack_port_t *));
+
+    char out [256];
+    char in  [256];
 
     for (int i = 0; i < CHANNELS; i++){
-        char out[256], in[256];
-        sprintf(in, "capture_%d", i+1);
-        sprintf(out, "playback_%d", i+1);
-        INPUT_PORT[i] = jack_port_register (client, in, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
-        OUTPUT_PORT[i] = jack_port_register (client, out, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-        RING[i] = jack_ringbuffer_create(sample_size * length);
-        memset(RING[i]->buf, 0, RING[i]->size);
-        jack_opened_ports += 2;
+        sprintf(in,  "capture_%d",  i + 1);
+        sprintf(out, "playback_%d", i + 1);
+
+        INPUT_PORTS[i]  = jack_port_register(CLIENT,
+                                             in,
+                                             JACK_DEFAULT_AUDIO_TYPE,
+                                             JackPortIsInput,
+                                             0);
+
+        OUTPUT_PORTS[i] = jack_port_register(CLIENT,
+                                             out,
+                                             JACK_DEFAULT_AUDIO_TYPE,
+                                             JackPortIsOutput,
+                                             0);
     }
 
-    if (jack_set_process_callback(client, callback_jack, NULL)) {
+    if (jack_set_process_callback(CLIENT, vlevel_process_callback, NULL)) {
         cerr << "cannot set process callback" << endl;
         return 1;
     }
 
-    if (jack_activate (client)) {
+    if (jack_activate (CLIENT)) {
         cerr << "cannot activate client" << endl;
         return 1;
     }
