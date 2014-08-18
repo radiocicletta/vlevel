@@ -31,6 +31,7 @@ typedef jack_default_audio_sample_t sample_t;
 
 size_t sample_size = sizeof(jack_default_audio_sample_t);
 
+
 size_t             channels          =  2;
 value_t            strength          = .8;
 value_t            max_multiplier    = 20;
@@ -73,7 +74,6 @@ int vlevel_process_callback(jack_nframes_t nframes, void *arg)
         sample_t * jack_input = (sample_t *)jack_port_get_buffer(input_ports[i], nframes);
         ToValues((char *)jack_input, input_buffers[i], nframes, sizeof(sample_t) * 8, true);
     }
-
 
     leveler->Exchange(input_buffers, output_buffers, nframes);
 
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (jack_set_buffer_size_callback(client, vlevel_buffer_size_change_callback, NULL) == 0) {
+    if (jack_set_buffer_size_callback(client, vlevel_buffer_size_change_callback, NULL)) {
         cerr << "failed to set buffer size callback" << endl;
         return 1;
     }
