@@ -198,6 +198,15 @@ void ToValues(char *in, value_t *out, size_t values,
               size_t bits_per_value, bool has_sign)
 {
 	switch(bits_per_value) {
+    case 32:
+		if(has_sign) {
+			for(size_t i = 0; i < values; ++i)
+				out[i] = ((value_t)((int32_t *)in)[i]) / 2147483648;
+		} else {
+			for(size_t i = 0; i < values; ++i)
+				out[i] = (((value_t)((u_int32_t *)in)[i]) - 2147483648) / 2147483648;
+		}
+		break;
 	case 16:
 		if(has_sign) {
 			for(size_t i = 0; i < values; ++i)
@@ -227,6 +236,15 @@ void FromValues(value_t *in, char *out, size_t values,
                 size_t bits_per_value, bool has_sign)
 {
 	switch(bits_per_value) {
+	case 32:
+		if(has_sign) {
+			for(size_t i = 0; i < values; ++i)
+				((int32_t *)out)[i] = (int32_t)(in[i] * 2147483647);
+		} else {
+    	for(size_t i = 0; i < values; ++i)
+				((u_int32_t *)out)[i] = (u_int32_t)((in[i] * 2147483647) + 2147483647);
+		}
+		break;
 	case 16:
 		if(has_sign) {
 			for(size_t i = 0; i < values; ++i)
