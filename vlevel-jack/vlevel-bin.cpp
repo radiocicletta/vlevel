@@ -129,6 +129,18 @@ void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
 
 }
 
+
+static char * JACK_FRAME_BUFFER = NULL;
+
+int jack_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
+{
+    if (JACK_FRAME_BUFFER)
+        free(JACK_FRAME_BUFFER);
+
+    JACK_FRAME_BUFFER = malloc(sizeof(sample_t) * nframes);
+    return (JACK_FRAME_BUFFER != NULL);
+}
+
 int callback_jack(jack_nframes_t nframes, void *arg)
 {
     if (!barrier)
@@ -136,16 +148,14 @@ int callback_jack(jack_nframes_t nframes, void *arg)
 
     size_t channels = jack_opened_ports / 2;
     sample_t *in[channels];
-    char *frame = (char *) malloc(sizeof(sample_t) * nframes);
 
     for (int i = 0; i < channels ; i++)
     {
         in[i] = (sample_t *) jack_port_get_buffer(input_port[i], nframes);
-        memcpy(frame, in[i], sizeof(sample_t) * nframes);
-        jack_ringbuffer_write(ring[i], frame,  sizeof(sample_t) * nframes);
+        memcpy(JACK_FRAME_BUFFER, in[i], sizeof(sample_t) * nframes);
+        jack_ringbuffer_write(ring[i], JACK_FRAME_BUFFER,  sizeof(sample_t) * nframes);
     }
 
-    free(frame);
     LevelRaw(l, sizeof(sample_t) * 8);
 
     return 0;
@@ -239,6 +249,11 @@ int main(int argc, char *argv[])
 	
 	if ((client = jack_client_open (jack_name, JackNullOption, NULL)) == 0) {
 		cerr << "jack server not running?" << endl;
+		return 1;
+	}
+
+	if ((client = jack_set_buffer_size_callback(client, jack_set_buffer_size_callback, NULL)) == 0) {
+		cerr << "failed to set buffer size callback" << endl;
 		return 1;
 	}
 
