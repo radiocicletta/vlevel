@@ -50,23 +50,29 @@ void LevelRaw(VolumeLeveler *, unsigned int);
 #define MAX_PORTS 2 
 typedef jack_default_audio_sample_t sample_t;
 
-
-jack_port_t *input_port[MAX_PORTS];
-jack_port_t *output_port[MAX_PORTS];
-jack_ringbuffer_t *ring[MAX_PORTS];
+jack_port_t       *input_port  [MAX_PORTS];
+jack_port_t       *output_port [MAX_PORTS];
+jack_ringbuffer_t *ring        [MAX_PORTS];
 
 size_t sample_size = sizeof(jack_default_audio_sample_t);
 size_t jack_opened_ports = 0;
 
-VolumeLeveler l;
+// Options
+size_t          CHANNELS          =  2;
+value_t         STRENGHT          = .8;
+value_t         MAX_MULTIPLIER    = 20;
 
-void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
+// State
+char          * JACK_FRAME_BUFFER = NULL;
+VolumeLeveler * LEVELER           = NULL;
+
+void LevelRaw()
 {
-    assert(bits_per_value % 8 == 0);
-    
+    size_t bits_per_value = sizeof(sample_t) * 8;
+
     // figure out the size of things
-    size_t samples = vl.GetSamples();
-    size_t channels = vl.GetChannels();
+    size_t samples = LEVELER->GetSamples();
+    size_t channels = LEVELER->GetChannels();
     size_t values = samples * channels;
     size_t bytes_per_value = sample_size;
     size_t bytes = values * bytes_per_value;
@@ -104,7 +110,7 @@ void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
     }
 
 
-    silence_samples = vl.Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
+    silence_samples = LEVELER->Exchange(bufs, bufs_out, good_values/sizeof(sample_t) / channels);
 
 
     // write the data
@@ -132,14 +138,24 @@ void LevelRaw(VolumeLeveler &vl, unsigned int bits_per_value)
 }
 
 
-static char * JACK_FRAME_BUFFER = NULL;
 
 int jack_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
     if (JACK_FRAME_BUFFER)
         free(JACK_FRAME_BUFFER);
 
-    JACK_FRAME_BUFFER = malloc(sizeof(sample_t) * nframes);
+    if (LEVELER)
+        delete LEVELER;
+
+    JACK_FRAME_BUFFER = (char *) malloc(sizeof(sample_t) * nframes);
+
+    jack_nframes_t bufsize = nframes * sizeof(value_t) * CHANNELS * 2;
+    LEVELER = new VolumeLeveler(bufsize,
+                                CHANNELS,
+                                STRENGHT,
+                                MAX_MULTIPLIER);
+
+
     return (JACK_FRAME_BUFFER != NULL);
 }
 
@@ -155,7 +171,7 @@ int callback_jack(jack_nframes_t nframes, void *arg)
         jack_ringbuffer_write(ring[i], JACK_FRAME_BUFFER,  sizeof(sample_t) * nframes);
     }
 
-    LevelRaw(l, sizeof(sample_t) * 8);
+    LevelRaw();
 
     return 0;
 }
@@ -191,34 +207,32 @@ int main(int argc, char *argv[])
 {
     CommandLine cmd(argc, argv);
     size_t length = 3 * 44100;
-    size_t channels = 2;
-    value_t strength = .8, max_multiplier = 20;
     bool undo = false;
     string option, argument;
     const char *jack_name = "vlevel";
-    
+
     while(option = cmd.GetOption(), !option.empty()) {
         
         if(option == "channels" || option == "c") {
-            if((istringstream(cmd.GetArgument()) >> channels).fail()) {
+            if((istringstream(cmd.GetArgument()) >> CHANNELS).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --channels" << endl;
                 return 2;
             }
-            if(channels < 1) {
+            if(CHANNELS < 1) {
                 cerr << cmd.GetProgramName() << ": --channels must be greater than 0" << endl;
                 return 2;
             }
         } else if(option == "strength" || option == "s") {
-            if((istringstream(cmd.GetArgument()) >> strength).fail()) {
+            if((istringstream(cmd.GetArgument()) >> STRENGHT).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --strength" << endl;
                 return 2;
             }
-            if(strength < 0 || strength > 1) {
+            if(STRENGHT < 0 || STRENGHT > 1) {
                 cerr << cmd.GetProgramName() << ": --strength must be between 0 and 1 inclusive." << endl;
                 return 2;
             }
         } else if(option == "max-multiplier" || option == "m") {
-            if((istringstream(cmd.GetArgument()) >> max_multiplier).fail()) {
+            if((istringstream(cmd.GetArgument()) >> MAX_MULTIPLIER).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --max-multiplier" << endl
                      << cmd.GetProgramName() << ": for no max multiplier, give a negative number" << endl;
                 return 2;
@@ -236,27 +250,29 @@ int main(int argc, char *argv[])
     }
     
     // This works, see docs/technical.txt
-    if(undo) strength = strength / (strength - 1);
+    if(undo) STRENGHT = STRENGHT / (STRENGHT - 1);
     
     cerr << "Beginning VLevel with:" << endl
          << "length: " << length << endl
-         << "channels: " << channels << endl
-         << "strength: " << strength << endl
-         << "max_multiplier: " << max_multiplier << endl;
+         << "channels: " << CHANNELS << endl
+         << "strength: " << STRENGHT << endl
+         << "max_multiplier: " << MAX_MULTIPLIER << endl;
     
     jack_client_t* client = NULL;
     
-    if ((client = jack_client_open (jack_name, JackNullOption, NULL)) == 0) {
+    if ((client = jack_client_open(jack_name, JackNullOption, NULL)) == 0) {
         cerr << "jack server not running?" << endl;
         return 1;
     }
 
-    if ((client = jack_set_buffer_size_callback(client, jack_set_buffer_size_callback, NULL)) == 0) {
+    if (jack_set_buffer_size_callback(client, jack_buffer_size_change_callback, NULL) == 0) {
         cerr << "failed to set buffer size callback" << endl;
         return 1;
     }
 
-    for (int i = 0; i < channels; i++){
+    jack_on_shutdown (client, jack_shutdown, NULL);
+
+    for (int i = 0; i < CHANNELS; i++){
         char out[256], in[256];
         sprintf(in, "capture_%d", i+1);
         sprintf(out, "playback_%d", i+1);
@@ -267,19 +283,13 @@ int main(int argc, char *argv[])
         jack_opened_ports += 2;
     }
 
-    double framerate = jack_get_sample_rate(client);
-    if (jack_activate (client)) {
-        cerr << "cannot activate client" << endl;
-        return 1;
-    }
-    jack_on_shutdown (client, jack_shutdown, NULL);
-
-    jack_nframes_t bufsize = jack_get_buffer_size(client) * sizeof(value_t) * channels * 2;
-    cerr << "length: " << bufsize << endl;
-    l = VolumeLeveler(bufsize, channels, strength, max_multiplier);
-
     if (jack_set_process_callback(client, callback_jack, NULL)) {
         cerr << "cannot set process callback" << endl;
+        return 1;
+    }
+
+    if (jack_activate (client)) {
+        cerr << "cannot activate client" << endl;
         return 1;
     }
 
