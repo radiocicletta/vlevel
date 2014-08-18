@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (jack_set_buffer_size_callback(client, jack_buffer_size_change_callback, NULL) == 0) {
+    if (jack_set_buffer_size_callback(client, jack_buffer_size_change_callback, NULL) != 0) {
         cerr << "failed to set buffer size callback" << endl;
         return 1;
     }
