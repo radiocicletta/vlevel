@@ -49,12 +49,7 @@ void Help();
 #define MAX_PORTS 2 
 typedef jack_default_audio_sample_t sample_t;
 
-jack_port_t       *input_port  [MAX_PORTS];
-jack_port_t       *output_port [MAX_PORTS];
-jack_ringbuffer_t *ring        [MAX_PORTS];
-
 size_t sample_size = sizeof(jack_default_audio_sample_t);
-size_t jack_opened_ports = 0;
 
 // Options
 size_t          CHANNELS          =  2;
@@ -62,8 +57,14 @@ value_t         STRENGHT          = .8;
 value_t         MAX_MULTIPLIER    = 20;
 
 // State
-char          * JACK_FRAME_BUFFER = NULL;
-VolumeLeveler * LEVELER           = NULL;
+
+jack_port_t       * INPUT_PORT  [MAX_PORTS];
+jack_port_t       * OUTPUT_PORT [MAX_PORTS];
+jack_ringbuffer_t * RING        [MAX_PORTS];
+
+size_t              jack_opened_ports = 0;
+char              * JACK_FRAME_BUFFER = NULL;
+VolumeLeveler     * LEVELER           = NULL;
 
 int jack_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
@@ -92,9 +93,9 @@ int callback_jack(jack_nframes_t nframes, void *arg)
 
     for (int i = 0; i < channels ; i++)
     {
-        in[i] = (sample_t *) jack_port_get_buffer(input_port[i], nframes);
+        in[i] = (sample_t *) jack_port_get_buffer(INPUT_PORT[i], nframes);
         memcpy(JACK_FRAME_BUFFER, in[i], sizeof(sample_t) * nframes);
-        jack_ringbuffer_write(ring[i], JACK_FRAME_BUFFER,  sizeof(sample_t) * nframes);
+        jack_ringbuffer_write(RING[i], JACK_FRAME_BUFFER,  sizeof(sample_t) * nframes);
     }
 
     {
@@ -126,11 +127,11 @@ int callback_jack(jack_nframes_t nframes, void *arg)
         // read and convert to value_t
         char *buf_in = (char *) malloc(bytes);
         for (int i = 0; i < channels; i++){
-            good_values = jack_ringbuffer_read_space(ring[i]);
+            good_values = jack_ringbuffer_read_space(RING[i]);
             good_samples = good_values; // sizeof(sample_t); //good_values / channels;
             bufs[i] = new value_t[samples];
             bufs_out[i] = new value_t[samples];
-            jack_ringbuffer_read(ring[i], buf_in, good_values);
+            jack_ringbuffer_read(RING[i], buf_in, good_values);
             for (size_t s = 0; s < good_values; s++){
                 raw_buf[s] = *(buf_in + s);
             }
@@ -149,7 +150,7 @@ int callback_jack(jack_nframes_t nframes, void *arg)
             for (size_t s = 0; s < good_values; s++)
                 raw_value_buf[s] = bufs[i][s];
             FromValues(raw_value_buf, raw_buf, good_samples, bits_per_value, true);
-            out = (jack_default_audio_sample_t *) jack_port_get_buffer(output_port[i], good_values);
+            out = (jack_default_audio_sample_t *) jack_port_get_buffer(OUTPUT_PORT[i], good_values);
             for (size_t s = 0; s < good_values; s++)
                 *(buf_out + s) = raw_buf[s];
             memcpy(out, buf_out, good_values);
@@ -269,10 +270,10 @@ int main(int argc, char *argv[])
         char out[256], in[256];
         sprintf(in, "capture_%d", i+1);
         sprintf(out, "playback_%d", i+1);
-        input_port[i] = jack_port_register (client, in, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
-        output_port[i] = jack_port_register (client, out, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-        ring[i] = jack_ringbuffer_create(sample_size * length);
-        memset(ring[i]->buf, 0, ring[i]->size);
+        INPUT_PORT[i] = jack_port_register (client, in, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+        OUTPUT_PORT[i] = jack_port_register (client, out, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+        RING[i] = jack_ringbuffer_create(sample_size * length);
+        memset(RING[i]->buf, 0, RING[i]->size);
         jack_opened_ports += 2;
     }
 
