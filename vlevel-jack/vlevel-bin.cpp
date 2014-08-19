@@ -41,24 +41,25 @@ VolumeLeveler     * leveler          = NULL;
 jack_port_t     ** input_ports       = NULL;
 jack_port_t     ** output_ports      = NULL;
 
-value_t         ** input_buffers     = NULL;
-value_t         ** output_buffers    = NULL;
+value_t         ** input_bufferlist  = NULL;
+value_t         ** output_bufferlist = NULL;
 
 int vlevel_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
     size_t buffer_size = sizeof(value_t) * nframes;
 
-    if (leveler) {
+    if (leveler)
+    {
         delete leveler;
 
-        free(input_buffers);
-        free(output_buffers);
+        free(input_bufferlist);
+        free(output_bufferlist);
     }
 
-    input_buffers  = (value_t **) calloc(channels, buffer_size);
-    output_buffers = (value_t **) calloc(channels, buffer_size);
+    input_bufferlist  = (value_t **) calloc(channels, sizeof(value_t *));
+    output_bufferlist = (value_t **) calloc(channels, sizeof(value_t *));
 
-    leveler = new VolumeLeveler(jack_get_sample_rate(client),
+    leveler = new VolumeLeveler(buffer_size,
                                 channels,
                                 strength,
                                 max_multiplier);
@@ -70,18 +71,14 @@ int vlevel_process_callback(jack_nframes_t nframes, void *arg)
 {
     for (int i = 0; i < channels; i++)
     {
-        sample_t * jack_input = (sample_t *)jack_port_get_buffer(input_ports[i], nframes);
-        ToValues((char *)jack_input, input_buffers[i], nframes, sizeof(sample_t) * 8, true);
-    }
-
-
-    leveler->Exchange(input_buffers, output_buffers, nframes);
-
-    for (int i = 0; i < channels; i++)
-    {
+        sample_t * jack_input  = (sample_t *)jack_port_get_buffer(input_ports[i],  nframes);
         sample_t * jack_output = (sample_t *)jack_port_get_buffer(output_ports[i], nframes);
-        FromValues(output_buffers[i], (char *)jack_output, nframes, sizeof(sample_t) * 8, true);
+
+        input_bufferlist[i]  = &jack_input[i];
+        output_bufferlist[i] = &jack_output[i];
     }
+
+    leveler->Exchange(input_bufferlist, output_bufferlist, nframes);
 
     return 0;
 }
@@ -190,7 +187,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (jack_set_buffer_size_callback(client, vlevel_buffer_size_change_callback, NULL) != 0) {
+    if (jack_set_buffer_size_callback(client, vlevel_buffer_size_change_callback, NULL)) {
         cerr << "failed to set buffer size callback" << endl;
         return 1;
     }
