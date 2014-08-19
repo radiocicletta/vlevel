@@ -75,8 +75,8 @@ int vlevel_process_callback(jack_nframes_t nframes, void *arg)
         sample_t * jack_input  = (sample_t *)jack_port_get_buffer(input_ports[i],  nframes);
         sample_t * jack_output = (sample_t *)jack_port_get_buffer(output_ports[i], nframes);
 
-        input_bufferlist[i]  = &jack_input[i];
-        output_bufferlist[i] = &jack_output[i];
+        input_bufferlist[i]  = jack_input;
+        output_bufferlist[i] = jack_output;
     }
 
     leveler->Exchange(input_bufferlist, output_bufferlist, nframes);
