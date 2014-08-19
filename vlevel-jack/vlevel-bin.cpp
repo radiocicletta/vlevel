@@ -31,9 +31,10 @@ typedef jack_default_audio_sample_t sample_t;
 
 size_t sample_size = sizeof(jack_default_audio_sample_t);
 
-size_t             channels          =  2;
-value_t            strength          = .8;
-value_t            max_multiplier    = 20;
+size_t             lookahead_size    = 512;
+size_t             channels          =   2;
+value_t            strength          =  .8;
+value_t            max_multiplier    =  20;
 
 jack_client_t     * client           = NULL;
 VolumeLeveler     * leveler          = NULL;
@@ -59,7 +60,7 @@ int vlevel_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
     input_bufferlist  = (value_t **) calloc(channels, sizeof(value_t *));
     output_bufferlist = (value_t **) calloc(channels, sizeof(value_t *));
 
-    leveler = new VolumeLeveler(buffer_size,
+    leveler = new VolumeLeveler(lookahead_size,
                                 channels,
                                 strength,
                                 max_multiplier);
@@ -97,6 +98,9 @@ void vlevel_help()
          << "\tvlevel-bin [options] < infile > outfile" << endl
          << endl
          << "options: (abbreviations also work)" << endl
+         << "\t--length num" << endl
+         << "\t\tSize of the lookahead buffer. The longer, the slowest" << endl
+         << "\t\tDefault is 512" << endl
          << "\t--channels num" << endl
          << "\t\tEach sample has num channels" << endl
          << "\t\tDefault is 2" << endl
@@ -116,6 +120,7 @@ int vlevel_parse_options(
     const char *const* argv,
 
     // out
+    size_t  * lookahead_size,
     size_t  * channels,
     value_t * strength,
     value_t * max_multiplier
@@ -128,7 +133,16 @@ int vlevel_parse_options(
     CommandLine cmd(argc, argv);
 
     while(option = cmd.GetOption(), !option.empty()) {
-        if(option == "channels" || option == "c") {
+        if(option == "length" || option == "l") {
+            if((istringstream(cmd.GetArgument()) >> *lookahead_size).fail()) {
+                cerr << cmd.GetProgramName() << ": bad or no option for --length" << endl;
+                return 2;
+            }
+            if(*channels < 1) {
+                cerr << cmd.GetProgramName() << ": --channels must be greater than 0" << endl;
+                return 2;
+            }
+        } else if(option == "channels" || option == "c") {
             if((istringstream(cmd.GetArgument()) >> *channels).fail()) {
                 cerr << cmd.GetProgramName() << ": bad or no option for --channels" << endl;
                 return 2;
@@ -173,7 +187,7 @@ int vlevel_parse_options(
 
 int main(int argc, char *argv[])
 {
-    int retval = vlevel_parse_options(argc, argv, &channels, &strength, &max_multiplier);
+    int retval = vlevel_parse_options(argc, argv, &lookahead_size, &channels, &strength, &max_multiplier);
     if (retval != 0)
         exit(retval);
 
