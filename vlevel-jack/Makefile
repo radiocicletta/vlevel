@@ -23,7 +23,7 @@ CC = $(CXX)
 LDFLAGS = ` pkg-config --libs-only-L jack `
 #LDLIBS = -ljack -lpthread -framework CoreAudio -framework CoreServices -framework AudioUnit
 LDLIBS = ` pkg-config --libs-only-l jack `
-CXXFLAGS = ` pkg-config --cflags jack `
+CXXFLAGS = ` pkg-config --cflags jack ` -g
 #CXXFLAGS= -I/opt/local/include -g -v
 CFLAGS = $(CXXFLAGS)
 
@@ -46,15 +46,12 @@ clean:
 # make is run here, even during install (which leaves root's files).
 # Make sucks.
 
-../volumeleveler/volumeleveler.o:
-	make -C ../volumeleveler all
-
 vlevel-bin: vlevel-bin.o \
             commandline.o \
-            ../volumeleveler/volumeleveler.o
+            volumeleveler.o
 
 vlevel-bin.o: vlevel-bin.cpp \
               commandline.h \
-              ../volumeleveler/volumeleveler.h \
+              volumeleveler.h \
 
 commandline.o: commandline.cpp commandline.h

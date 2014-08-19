@@ -31,7 +31,6 @@ typedef jack_default_audio_sample_t sample_t;
 
 size_t sample_size = sizeof(jack_default_audio_sample_t);
 
-
 size_t             channels          =  2;
 value_t            strength          = .8;
 value_t            max_multiplier    = 20;
@@ -42,22 +41,35 @@ VolumeLeveler     * leveler          = NULL;
 jack_port_t     ** input_ports       = NULL;
 jack_port_t     ** output_ports      = NULL;
 
-value_t         ** input_buffers     = NULL;
-value_t         ** output_buffers    = NULL;
+value_t          * input_buffers     = NULL;
+value_t          * output_buffers    = NULL;
+
+value_t         ** input_bufferlist  = NULL;
+value_t         ** output_bufferlist = NULL;
+
 
 int vlevel_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
     size_t buffer_size = sizeof(value_t) * nframes;
 
-    if (leveler) {
+    if (leveler)
+    {
         delete leveler;
 
         free(input_buffers);
         free(output_buffers);
     }
 
-    input_buffers  = (value_t **) calloc(channels, buffer_size);
-    output_buffers = (value_t **) calloc(channels, buffer_size);
+    input_bufferlist  = (value_t **) calloc(channels, sizeof(value_t *));
+    output_bufferlist = (value_t **) calloc(channels, sizeof(value_t *));
+    input_buffers     = (value_t  *) calloc(channels, buffer_size);
+    output_buffers    = (value_t  *) calloc(channels, buffer_size);
+
+    for (int i = 0; i < channels; i++)
+    {
+        input_bufferlist[i]  = &input_buffers[i];
+        output_bufferlist[i] = &output_buffers[i];
+    }
 
     leveler = new VolumeLeveler(jack_get_sample_rate(client),
                                 channels,
@@ -72,15 +84,15 @@ int vlevel_process_callback(jack_nframes_t nframes, void *arg)
     for (int i = 0; i < channels; i++)
     {
         sample_t * jack_input = (sample_t *)jack_port_get_buffer(input_ports[i], nframes);
-        ToValues((char *)jack_input, input_buffers[i], nframes, sizeof(sample_t) * 8, true);
+        ToValues((char *)jack_input, &input_buffers[i], nframes, sizeof(sample_t) * 8, true);
     }
 
-    leveler->Exchange(input_buffers, output_buffers, nframes);
+    leveler->Exchange(input_bufferlist, output_bufferlist, nframes);
 
     for (int i = 0; i < channels; i++)
     {
         sample_t * jack_output = (sample_t *)jack_port_get_buffer(output_ports[i], nframes);
-        FromValues(output_buffers[i], (char *)jack_output, nframes, sizeof(sample_t) * 8, true);
+        FromValues(&output_buffers[i], (char *)jack_output, nframes, sizeof(sample_t) * 8, true);
     }
 
     return 0;
