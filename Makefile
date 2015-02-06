@@ -26,7 +26,8 @@
 # I'd be interested to see how setting -DEXPECT impacts performance -
 # on my system, it makes it a bit worse.
 
-export CXXFLAGS = -Wall -O3 -fPIC -DPIC -g -march=pentium4
+#export CXXFLAGS = -Wall -O3 -fPIC -DPIC -g -march=pentium4
+export CXXFLAGS = -Wall -O3 -fPIC -DPIC
 
 # On my system, ICC is quite a bit faster, with these options:
 #export CC=icc
@@ -55,13 +56,16 @@ all:
 	make -C volumeleveler all
 	make -C vlevel-bin all
 	make -C vlevel-ladspa all
+	make -C vlevel-jack all
 
 install: all
 	make -C volumeleveler install
 	make -C vlevel-bin install
 	make -C vlevel-ladspa install
+	make -C vlevel-jack install
 
 clean:
 	make -C volumeleveler clean
 	make -C vlevel-bin clean
 	make -C vlevel-ladspa clean
+	make -C vlevel-jack clean

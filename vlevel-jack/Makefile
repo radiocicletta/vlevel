@@ -17,6 +17,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 
+# commented out rules weer used to build it on OSX (yes, it works)
+#
 # This is evil, but it makes implicit link rules use g++, not gcc
 CC = $(CXX)
 #LDFLAGS = -L/opt/local/lib
@@ -28,15 +30,15 @@ CXXFLAGS = ` pkg-config --cflags jack `
 CFLAGS = $(CXXFLAGS)
 
 .PHONY: all
-all: vlevel-bin
+all: vlevel-jack
 
 .PHONY: install
 install: all
-	cp -f vlevel-bin $(PREFIX)/bin/
+	cp -f vlevel-jack $(PREFIX)/bin/
 
 .PHONY: clean
 clean:
-	-rm -f *.o vlevel-bin
+	-rm -f *.o vlevel-jack
 
 # This isn't ideal - if ../volumeleveler/volumeleveler.cpp was changed,
 # but make wasn't yet run there, then the .o file won't be new, so
@@ -49,11 +51,11 @@ clean:
 ../volumeleveler/volumeleveler.o:
 	make -C ../volumeleveler all
 
-vlevel-bin: vlevel-bin.o \
+vlevel-jack: vlevel-jack.o \
             commandline.o \
             ../volumeleveler/volumeleveler.o
 
-vlevel-bin.o: vlevel-bin.cpp \
+vlevel-jack.o: vlevel-jack.cpp \
               commandline.h \
               ../volumeleveler/volumeleveler.h \
 
