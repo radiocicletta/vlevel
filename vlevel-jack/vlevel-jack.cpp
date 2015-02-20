@@ -92,7 +92,7 @@ void jack_shutdown(void *arg)
 
 void vlevel_help()
 {
-    cerr << "VLevel v0.5 JACK edition" << endl
+    cerr << "VLevel v0.5.1 JACK edition" << endl
          << endl
          << "usage:" << endl
          << "\tvlevel-bin [options] < infile > outfile" << endl
