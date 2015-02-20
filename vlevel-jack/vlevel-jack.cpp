@@ -170,7 +170,7 @@ int vlevel_parse_options(
             undo = true;
         } else if(option == "help" || option == "h") {
             vlevel_help();
-            return 0;
+            exit(0);
         } else {
             cerr << cmd.GetProgramName() << ": unrecognized option " << option << endl;
             vlevel_help();
