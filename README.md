@@ -53,8 +53,8 @@ a Lv2 Plugin and a GUI (especially for vlevel-jack)
 
 ##Can I distribute VLevel?
 
-Please do.  VLevel is licenced under the GPL, for more information,
-see the COPYING file.
+Please do.  VLevel is licenced under the GNU Lesser General Public
+License (LGPL), for more information, see the [COPYING](COPYING) file.
 
 ##Where can I get more info?
 
