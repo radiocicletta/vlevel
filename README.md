@@ -39,7 +39,7 @@ the strength of the effect, and the maximum amplification, as well
 as the format of the raw data.  Type "vlevel-bin --help" for
 details.
 
-Vlevel works also as a
+VLevel works also as a
 [JACK Audio Connection Kit](http://jackaudio.org/) client. for
 Example:
 
