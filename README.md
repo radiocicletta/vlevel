@@ -24,7 +24,7 @@ collaborate.
 
 ## How do I install VLevel?
   
-See the file INSTALL.  For the impatient: `sudo make install`.
+See the file [INSTALL](INSTALL).  For the impatient: `sudo make install`
 
 ## How do I use VLevel?
 
