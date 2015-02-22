@@ -29,8 +29,9 @@ See the file INSTALL.  For the impatient: `sudo make install`.
 
 ##How do I use VLevel?
 
-Original VLevel is a filter, meaning you pipe raw data to it, and it outputs
-the leveled data.  For example:
+Original VLevel is a filter, meaning you pipe raw CDDA
+([Compact Disc Digital Audio](https://en.wikipedia.org/wiki/Compact_Disc_Digital_Audio))
+data to it, and it outputs the leveled data.  For example:
 
     vlevel-bin < in.cdda > out.cdda
 
