@@ -16,6 +16,8 @@ added a new module in order to use it as a JACK client. After several
 months of test in a working production (a 24/7 broadcasting environment)
 we can confirm the software is reliable.
 
+The original project's website is at http://vlevel.sourceforge.net/.
+
 ##What are the supported platform?
 
 We known VLevel to works in Linux and OSX Environments. We cannot at this moment 
@@ -58,8 +60,8 @@ License (LGPL), for more information, see the [COPYING](COPYING) file.
 
 ##Where can I get more info?
 
-There is documentation in the docs directory. Documentation, 
-help, and more are available from the website: http://vlevel.sourceforge.net
+There is documentation in the [docs](docs/) directory. Documentation,
+help, and more are also available from the original project's website:
+http://vlevel.sourceforge.net/
 
 Also support http://www.radiocicletta.it, our beloved webradio :3
-
