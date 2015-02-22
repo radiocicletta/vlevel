@@ -11,9 +11,10 @@ contrast" is preserved.
 **This repository is a fork of the original vlevel code** since the
 last release of the [original source](http://vlevel.sourceforge.net/)
 is from 2004.  Although this, the code is robust and it works pretty
-much unmodified nowadays. We imported from the old CVS repository and
-added a new module in order to use it as a JACK client. After several
-months of test in a working production (a 24/7 broadcasting
+much unmodified nowadays. We imported from the
+[old CVS repository](http://vlevel.cvs.sourceforge.net/viewvc/vlevel/vlevel/)
+and added a new module in order to use it as a JACK client. After
+several months of test in a working production (a 24/7 broadcasting
 environment) we can confirm that the software is reliable.
 
 ## What are the supported platforms?
