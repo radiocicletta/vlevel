@@ -1,6 +1,6 @@
-#VLevel 0.5.1
+# VLevel 0.5.1
 
-##What is VLevel?
+## What is VLevel?
 
 VLevel is a tool to amplify the soft parts of music so you don't
 have to fiddle with the volume control.  It looks ahead a few
@@ -17,16 +17,16 @@ months of test in a working production (a 24/7 broadcasting
 environment) we can confirm the software is reliable.
 
 
-##What are the supported platform?
+## What are the supported platform?
 
 We known VLevel to works in Linux and OSX Environments. We cannot at this moment 
 test it on other platform, but we encourage you to collaborate
 
-##How do I install VLevel?
+## How do I install VLevel?
   
 See the file INSTALL.  For the impatient: `sudo make install`.
 
-##How do I use VLevel?
+## How do I use VLevel?
 
 Original VLevel is a filter, meaning you pipe raw CDDA
 ([Compact Disc Digital Audio](https://en.wikipedia.org/wiki/Compact_Disc_Digital_Audio))
@@ -52,19 +52,19 @@ VLevel also works as a LADSPA plugin. See the
 [Linux Audio Developer's Simple Plugin API website](http://www.ladspa.org/)
 for a lists of hosts that VLevel can plug into.
 
-##What other features are planed?
+## What other features are planed?
 
 a Lv2 Plugin and a GUI (especially for vlevel-jack)
 
-##Can I distribute VLevel?
+## Can I distribute VLevel?
 
 Please do.  VLevel is licenced under the GNU Lesser General Public
 License (LGPL), for more information, see the [COPYING](COPYING) file.
 
-##Where can I get more info?
+## Where can I get more info?
 
 There is documentation in the [docs](docs/) directory. Documentation,
 help, and more are also available from the
 [original project's website](http://vlevel.sourceforge.net/).
 
-Also support http://www.radiocicletta.it, our beloved webradio :3
+Also support http://www.radiocicletta.it/, our beloved webradio :3
