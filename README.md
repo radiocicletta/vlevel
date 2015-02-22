@@ -14,13 +14,13 @@ is from 2004.  Although this, the code is robust and it works pretty
 much unmodified nowadays. We imported form the old CVS repository and
 added a new module in order to use it as a JACK client. After several
 months of test in a working production (a 24/7 broadcasting
-environment) we can confirm the software is reliable.
+environment) we can confirm that the software is reliable.
 
+## What are the supported platforms?
 
-## What are the supported platform?
-
-We known VLevel to works in Linux and OSX Environments. We cannot at this moment 
-test it on other platform, but we encourage you to collaborate
+We know VLevel to work in Linux and OSX environments. At this moment
+we cannot test it on other platforms, but we encourage you to
+collaborate.
 
 ## How do I install VLevel?
   
