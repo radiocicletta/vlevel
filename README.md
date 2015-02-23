@@ -31,7 +31,9 @@ See the file [INSTALL](INSTALL).  For the impatient: `sudo make install`
 
 Original VLevel is a filter, meaning you pipe raw CDDA
 ([Compact Disc Digital Audio](https://en.wikipedia.org/wiki/Compact_Disc_Digital_Audio))
-data to it, and it outputs the leveled data.  For example:
+data to it, and it outputs the leveled data.
+
+Example:
 
     vlevel-bin < in.cdda > out.cdda
 
@@ -41,8 +43,9 @@ as the format of the raw data.  Type "vlevel-bin --help" for
 details.
 
 VLevel works also as a
-[JACK Audio Connection Kit](http://jackaudio.org/) client. for
-Example:
+[JACK Audio Connection Kit](http://jackaudio.org/) client.
+
+For example
 
     vlevel-jack --length 22050 --max-multiplier 20 --strength 0.8
 
