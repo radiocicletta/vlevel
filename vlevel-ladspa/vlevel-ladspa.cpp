@@ -42,7 +42,7 @@ LADSPA_PortDescriptor vlevel_port_descriptors[] = {
 	LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO
 };
 
-char *vlevel_port_names[] = {
+const char *vlevel_port_names[] = {
 	"Look-ahead (seconds)",
 	"Strength",
 	"Limit Multiplier",
@@ -207,11 +207,12 @@ void VLevelInstance::ConnectPort(unsigned long port, value_t *data_location)
 {
 	ports[port] = data_location;
 	
-	if(port >= CONTROL_PORT_COUNT) // is a control port
+	if(port >= CONTROL_PORT_COUNT) { // is a control port
 		if((port - CONTROL_PORT_COUNT) % 2 == 0) // is an input port
 			in[(port - CONTROL_PORT_COUNT) / 2] = data_location;
 		else if((port - CONTROL_PORT_COUNT) % 2 == 1) // is an output port
 			out[(port - CONTROL_PORT_COUNT) / 2] = data_location;
+	}
 }
 
 void VLevelInstance::Activate()
