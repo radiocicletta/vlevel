@@ -213,8 +213,8 @@ int main(int argc, char *argv[])
     char in  [256];
 
     for (size_t i = 0; i < channels; i++){
-        sprintf(in,  "capture_%ld",  i + 1);
-        sprintf(out, "playback_%ld", i + 1);
+        snprintf(in,  sizeof(in),  "capture_%ld",  i + 1);
+        snprintf(out, sizeof(out), "playback_%ld", i + 1);
 
         input_ports[i]  = jack_port_register(client,
                                              in,
