@@ -1,3 +1,5 @@
+vlevel-bin/vlevel-bin
+vlevel-jack/vlevel-jack
 
 # Created by http://www.gitignore.io
 
@@ -49,7 +51,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-vlevel-bin
 autom4te.cache
 autoscan.log
 configure.ac
