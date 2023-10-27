@@ -36,7 +36,8 @@ export CXXFLAGS += -Wall -O3 -fPIC -DPIC
 #export CXXFLAGS = -fPIC -DPIC -g  -O3 -rcd
 
 # This is where it will be installed
-export PREFIX = /usr/local/
+export DESTDIR := /
+export PREFIX = $(DESTDIR)/usr/
 export LADSPA_PATH = $(PREFIX)/lib/ladspa/
 
 # End of user-editable options.
