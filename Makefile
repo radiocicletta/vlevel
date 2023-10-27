@@ -27,7 +27,7 @@
 # on my system, it makes it a bit worse.
 
 #export CXXFLAGS = -Wall -O3 -fPIC -DPIC -g -march=pentium4
-export CXXFLAGS = -Wall -O3 -fPIC -DPIC
+export CXXFLAGS += -Wall -O3 -fPIC -DPIC
 
 # On my system, ICC is quite a bit faster, with these options:
 #export CC=icc
@@ -41,13 +41,6 @@ export LADSPA_PATH = $(PREFIX)/lib/ladspa/
 
 # End of user-editable options.
 
-
-# Note: this probably isn't the best way to have one makefile for
-# source in several directories.  Someday I'll figure out automake.
-# Writing Makefiles always makes me feel like I'm reinventing the
-# wheel.
-
-# This is evil, but it makes implicit link rules use g++, not gcc
 export CC = $(CXX)
 
 .PHONY: all install clean

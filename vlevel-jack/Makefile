@@ -17,17 +17,17 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 
-# commented out rules weer used to build it on OSX (yes, it works)
-#
-# This is evil, but it makes implicit link rules use g++, not gcc
+PKG_CONFIG ?= pkg-config
+
 CC = $(CXX)
+CXXFLAGS += $(shell $(PKG_CONFIG) --cflags jack)
+LDFLAGS += $(shell $(PKG_CONFIG) --libs-only-L jack)
+LDLIBS += $(shell $(PKG_CONFIG) --libs-only-l jack)
+
+# commented out rules were used to build it on OSX (yes, it works)
 #LDFLAGS = -L/opt/local/lib
-LDFLAGS = ` pkg-config --libs-only-L jack `
 #LDLIBS = -ljack -lpthread -framework CoreAudio -framework CoreServices -framework AudioUnit
-LDLIBS = ` pkg-config --libs-only-l jack `
-CXXFLAGS = ` pkg-config --cflags jack `
 #CXXFLAGS= -I/opt/local/include -g -v
-CFLAGS = $(CXXFLAGS)
 
 .PHONY: all
 all: vlevel-jack
