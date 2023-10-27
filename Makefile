@@ -53,19 +53,19 @@ export CC = $(CXX)
 .PHONY: all install clean
 
 all:
-	make -C volumeleveler all
-	make -C vlevel-bin all
-	make -C vlevel-ladspa all
-	make -C vlevel-jack all
+	$(MAKE) -C volumeleveler all
+	$(MAKE) -C vlevel-bin all
+	$(MAKE) -C vlevel-ladspa all
+	$(MAKE) -C vlevel-jack all
 
 install: all
-	make -C volumeleveler install
-	make -C vlevel-bin install
-	make -C vlevel-ladspa install
-	make -C vlevel-jack install
+	$(MAKE) -C volumeleveler install
+	$(MAKE) -C vlevel-bin install
+	$(MAKE) -C vlevel-ladspa install
+	$(MAKE) -C vlevel-jack install
 
 clean:
-	make -C volumeleveler clean
-	make -C vlevel-bin clean
-	make -C vlevel-ladspa clean
-	make -C vlevel-jack clean
+	$(MAKE) -C volumeleveler clean
+	$(MAKE) -C vlevel-bin clean
+	$(MAKE) -C vlevel-ladspa clean
+	$(MAKE) -C vlevel-jack clean

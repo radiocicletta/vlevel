@@ -40,7 +40,7 @@ clean:
 # Make sucks.
 
 ../volumeleveler/volumeleveler.o:
-	make -C ../volumeleveler all
+	$(MAKE) -C ../volumeleveler all
 
 vlevel-bin: vlevel-bin.o \
             commandline.o \

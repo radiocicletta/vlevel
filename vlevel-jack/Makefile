@@ -49,7 +49,7 @@ clean:
 # Make sucks.
 
 ../volumeleveler/volumeleveler.o:
-	make -C ../volumeleveler all
+	$(MAKE) -C ../volumeleveler all
 
 vlevel-jack: vlevel-jack.o \
             commandline.o \

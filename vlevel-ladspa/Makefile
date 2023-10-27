@@ -40,7 +40,7 @@ clean:
 # Make sucks.
 
 ../volumeleveler/volumeleveler.o:
-	make -C ../volumeleveler all
+	$(MAKE) -C ../volumeleveler all
 
 vlevel-ladspa.so: vlevel-ladspa.o ../volumeleveler/volumeleveler.o
 	$(CXX) $(CXXFLAGS) -shared -o vlevel-ladspa.so vlevel-ladspa.o ../volumeleveler/volumeleveler.o
