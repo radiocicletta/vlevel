@@ -47,8 +47,6 @@ value_t         ** output_bufferlist = NULL;
 
 int vlevel_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 {
-    size_t buffer_size = sizeof(value_t) * nframes;
-
     if (leveler)
     {
         delete leveler;
@@ -70,7 +68,7 @@ int vlevel_buffer_size_change_callback(jack_nframes_t nframes, void *arg)
 
 int vlevel_process_callback(jack_nframes_t nframes, void *arg)
 {
-    for (int i = 0; i < channels; i++)
+    for (size_t i = 0; i < channels; i++)
     {
         sample_t * jack_input  = (sample_t *)jack_port_get_buffer(input_ports[i],  nframes);
         sample_t * jack_output = (sample_t *)jack_port_get_buffer(output_ports[i], nframes);
@@ -214,9 +212,9 @@ int main(int argc, char *argv[])
     char out [256];
     char in  [256];
 
-    for (int i = 0; i < channels; i++){
-        sprintf(in,  "capture_%d",  i + 1);
-        sprintf(out, "playback_%d", i + 1);
+    for (size_t i = 0; i < channels; i++){
+        sprintf(in,  "capture_%ld",  i + 1);
+        sprintf(out, "playback_%ld", i + 1);
 
         input_ports[i]  = jack_port_register(client,
                                              in,
