@@ -88,12 +88,12 @@ void jack_shutdown(void *arg)
     exit(0);
 }
 
-void vlevel_help()
+void vlevel_help(const char* program)
 {
     cerr << "VLevel v0.5.1 JACK edition" << endl
          << endl
          << "usage:" << endl
-         << "\tvlevel-bin [options] < infile > outfile" << endl
+	     << "\t" << program << " [options]" << endl
          << endl
          << "options: (abbreviations also work)" << endl
          << "\t--length num" << endl
@@ -167,11 +167,11 @@ int vlevel_parse_options(
         } else if(option == "undo" || option == "u") {
             undo = true;
         } else if(option == "help" || option == "h") {
-            vlevel_help();
+            vlevel_help(argv[0]);
             exit(0);
         } else {
             cerr << cmd.GetProgramName() << ": unrecognized option " << option << endl;
-            vlevel_help();
+            vlevel_help(argv[0]);
             return 2;
         }
     }

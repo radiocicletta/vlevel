@@ -118,12 +118,12 @@ void LevelRaw(FILE *in, FILE *out, VolumeLeveler &vl, unsigned int bits_per_valu
 
 }
 
-void Help()
+void Help(const char *program)
 {
 	cerr << "VLevel v0.5.1" << endl
 	     << endl
 	     << "usage:" << endl
-	     << "\tvlevel-bin [options] < infile.cdda > outfile.cdda" << endl
+	     << "\t" << program << " [options] < infile.cdda > outfile.cdda" << endl
 	     << endl
 	     << "options: (abbreviations also work)" << endl
 	     << "\t--length num" << endl
@@ -189,11 +189,11 @@ int main(int argc, char *argv[])
 		} else if(option == "undo" || option == "u") {
 			undo = true;
 		} else if(option == "help" || option == "h") {
-			Help();
+			Help(argv[0]);
 			return 0;
 		} else {
 			cerr << cmd.GetProgramName() << ": unrecognized option " << option << endl;
-			Help();
+			Help(argv[0]);
 			return 2;
 		}
 	}
