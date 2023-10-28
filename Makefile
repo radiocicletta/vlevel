@@ -26,7 +26,7 @@
 # I'd be interested to see how setting -DEXPECT impacts performance -
 # on my system, it makes it a bit worse.
 
-export VERSION = 0.5.1
+export VERSION = 0.5.2
 
 #export CXXFLAGS = -Wall -O3 -fPIC -DPIC -g -march=pentium4
 export CXXFLAGS += -Wall -O3 -fPIC -DPIC -DVLEVEL_VERSION=\"$(VERSION)\"
