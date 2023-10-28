@@ -90,7 +90,7 @@ void jack_shutdown(void *arg)
 
 void vlevel_help(const char* program)
 {
-    cerr << "VLevel v0.5.1 JACK edition" << endl
+    cerr << "VLevel v" << VLEVEL_VERSION << " JACK edition" << endl
          << endl
          << "usage:" << endl
 	     << "\t" << program << " [options]" << endl

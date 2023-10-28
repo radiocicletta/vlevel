@@ -120,7 +120,7 @@ void LevelRaw(FILE *in, FILE *out, VolumeLeveler &vl, unsigned int bits_per_valu
 
 void Help(const char *program)
 {
-	cerr << "VLevel v0.5.1" << endl
+	cerr << "VLevel v" << VLEVEL_VERSION << endl
 	     << endl
 	     << "usage:" << endl
 	     << "\t" << program << " [options] < infile.cdda > outfile.cdda" << endl
